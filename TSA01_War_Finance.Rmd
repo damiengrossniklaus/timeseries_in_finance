@@ -33,6 +33,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r, echo=FALSE, results=FALSE, message=FALSE}
 library(quantmod)
+library(tseries)
+library(gtrendsR)
+library(lubridate)
+library(ggplot2)
+library(zoo)
+library(dplyr)
+library(tidyr)
 ```
 
 
@@ -61,6 +68,85 @@ The precise methods to examine the hypothesis are not clear yet and will have to
 
 Import Time Series Data
 
+TODO: 
+- Justify why Adjusted values and not close values
+- Timeframe: December 2021 until December 2022
+```{r}
+# Ticker Data
+ticker_data <- NULL
+tickers_index <- c("XLK", "XLF", "XLV", "XLY", "XLE", "XLU")
+
+for (Ticker in tickers_index){
+  ticker_data <- cbind(ticker_data,
+                       getSymbols.yahoo(Ticker, from="2021-12-01", to="2023-12-01", 
+                                        periodicity = "weekly",auto.assign=FALSE)[,6])
+}
+# Remove first row as it is still in November to match Gtrends data
+ticker_data <- ticker_data[-1, ] 
+
+# Check length and min max date
+length(ticker_data$XLK.Adjusted)
+summary(ticker_data)[c(1, 6)]
+```
+
+
+```{r}
+ticker_data
+```
+
+```{r, eval=FALSE}
+# Google Trends data
+gtrends_war_web <- gtrends(
+  keyword = "war",
+  time = "2021-11-30 2023-12-01",
+  gprop = "web"
+)$interest_over_time
+gtrends_war_web
+```
+
+```{r}
+# Too many requests exclude?
+#gtrends_war_news <- gtrends(
+  #keyword = "war",
+  #time = "2021-12-01 2023-12-01",
+ # gprop = "news"
+#)$interest_over_time
+```
+
+Google Trends delivers data always from Sunday weekly. This has to be put to the weekly data from the financial tickers, which always starts at Monday.
+
+
+```{r, eval=FALSE}
+# Increase date by one day to match ticker data
+gtrends_war_web$date <- gtrends_war_web$date + days(1)
+
+# Check length and min max date
+length(gtrends_war_web$date)
+min(gtrends_war_web$date)
+max(gtrends_war_web$date)
+```
+
+
+
+```{r}
+# Visualization
+ticker_data_df <- fortify.zoo(ticker_data)
+colnames(ticker_data_df)[1] <- "Date"
+ticker_data_df <- gather(ticker_data_df, key="Ticker", value="Value", 
+                         c("XLK.Adjusted", "XLF.Adjusted", "XLV.Adjusted", 
+                           "XLY.Adjusted", "XLE.Adjusted", "XLU.Adjusted"), -Date)
+
+ticker_data_df
+```
+
+```{r}
+ggplot(ticker_data_df, aes(Date, Value)) +
+  geom_line(color='darkseagreen3') +
+  facet_wrap(~Ticker) +
+  labs(title="Ticker Time Series") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
 
 
 
