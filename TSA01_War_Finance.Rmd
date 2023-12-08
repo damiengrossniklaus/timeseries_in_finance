@@ -1,30 +1,72 @@
 ---
-title: "TSA01_War_Finance"
-author: "Damien Grossniklaus"
-date: '2023-12-08'
-output: html_document
+output: 
+  pdf_document:
+    toc: no
+editor_options:
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+\begin{center}
+\vspace*{75pt}
+\Huge \textbf{Who are the financial profiteers of war?} \\
+\vspace{50pt}
+\Large University of Applied Sciences Lucerne \\[10pt]
+\Large Master of Science in Applied Information and Data Science \\[10pt]
+\Large Time Series in Finance (TSA01) \\[10pt]
+\vspace{50pt}
+\Large Authors: Michèle Gerber and Damien Grossniklaus \\
+\Large Date of Submission: 22. December 2023 \\
+\end{center}
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+\newpage
+```{=latex}
+\setcounter{tocdepth}{4}
+\tableofcontents
+```
+\newpage
 
-```{r cars}
-summary(cars)
+
+```{r, echo=FALSE, results=FALSE, message=FALSE}
+library(quantmod)
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+**Potential structure**
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
+- Context and Goal (Literature?)
+- Methods
+- Data
+  - Import data (indices & Google words)
+  - Describe data
+  - Preprocessing
+- VAR & Causality Testing
+- Results & Discussion
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## 1. Context and Goal
+
+With recent outbreaks of war (e.g., in Israel or in the Ukraine), the question arises of how stock markets react to this and if there are sectors that profit from such crises. Specifically, the case study should examine if certain indices from specific economic sectors perform well in situations of crisis. To do this, the performance of several sector-specific indices in relation to an overall crisis measure should be compared and evaluated with the goal of examining if positive correlations between situations of crisis and stock market profits exist. Alternatively, the research question could be evaluated by comparing the development of sector-specific indices since the outbreak of the war in the Ukraine with the development of non-sector-specific indices (like SMI or S&P 500). If they perform better than overall indices this would indicate that they profit from war.
+
+## 2. Methods
+
+The precise methods to examine the hypothesis are not clear yet and will have to be decided once more methods are introduced in the lectures. However, correlation measurements as well as potential tests for causality will have to be included. If we use the alternative way to answer our research question we could probably use OLS (as described in class last week).
+
+## 3. Data
+
+
+Import Time Series Data
+
+
+
+
+## 4. VAR & Causality Testing
+
+
+## 5. Results & Discussion
+
+
