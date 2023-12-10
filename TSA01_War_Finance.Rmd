@@ -167,7 +167,7 @@ ggplot(ticker_data_df, aes(Value)) +
 
 
 #### Visualize Google Trends Data
-```{r fig.width=6, fig.height=4}
+```{r fig.align="center", fig.width=12, fig.height=4}
 # Line chart
 
 # Convert 'date' column to POSIXct format
@@ -188,6 +188,7 @@ ggplot(gtrends_war_web, aes(date, hits)) +
   annotate('label', x=as.POSIXct("2023-10-07"), y=80, 
              label="Start Israel-Hammas War", vjust=2, color="black")
   
+
 ```
 
 ```{r}
@@ -248,7 +249,6 @@ length(gtrends_war_web_differenced$date) == length(ticker_data_differenced$XLK.A
 min(gtrends_war_web_differenced$date)
 max(gtrends_war_web_differenced$date)
 ```
-
 
 
 
