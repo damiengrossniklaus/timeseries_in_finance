@@ -81,20 +81,15 @@ for (Ticker in tickers_index){
                        getSymbols.yahoo(Ticker, from="2021-12-01", to="2023-12-01", 
                                         periodicity = "weekly",auto.assign=FALSE)[,6])
 }
-# Remove first row as it is still in November to match Gtrends data
-ticker_data <- ticker_data[-1, ] 
 
 # Check length and min max date
 length(ticker_data$XLK.Adjusted)
 summary(ticker_data)[c(1, 6)]
+head(ticker_data)
 ```
 
 
 ```{r}
-ticker_data
-```
-
-```{r, eval=FALSE}
 # Google Trends data
 gtrends_war_web <- gtrends(
   keyword = "war",
@@ -104,19 +99,19 @@ gtrends_war_web <- gtrends(
 gtrends_war_web
 ```
 
-```{r}
+```{r, eval=FALSE}
 # Too many requests exclude?
-#gtrends_war_news <- gtrends(
-  #keyword = "war",
-  #time = "2021-12-01 2023-12-01",
- # gprop = "news"
-#)$interest_over_time
+gtrends_war_news <- gtrends(
+  keyword = "war",
+  time = "2021-12-01 2023-12-01",
+  gprop = "news"
+)$interest_over_time
 ```
 
 Google Trends delivers data always from Sunday weekly. This has to be put to the weekly data from the financial tickers, which always starts at Monday.
 
 
-```{r, eval=FALSE}
+```{r}
 # Increase date by one day to match ticker data
 gtrends_war_web$date <- gtrends_war_web$date + days(1)
 
@@ -126,7 +121,15 @@ min(gtrends_war_web$date)
 max(gtrends_war_web$date)
 ```
 
+```{r}
+# Remove first date of ticker data to match gtrends data
+ticker_data <- ticker_data[-1,]
+ticker_data
+```
 
+
+
+### Visualize Ticker Data
 
 ```{r}
 # Visualization
@@ -140,13 +143,112 @@ ticker_data_df
 ```
 
 ```{r}
+# Line Chart
 ggplot(ticker_data_df, aes(Date, Value)) +
   geom_line(color='darkseagreen3') +
   facet_wrap(~Ticker) +
-  labs(title="Ticker Time Series") +
+  ggtitle("Ticker Time Series") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.title = element_text(hjust = 0.5))
 ```
+
+```{r}
+# Histogram
+ggplot(ticker_data_df, aes(Value)) +
+  geom_histogram(color='darkseagreen3', fill='darkseagreen3') +
+  facet_wrap(~Ticker) +
+  ggtitle("Ticker Distributions") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.title = element_text(hjust = 0.5))
+
+```
+
+
+#### Visualize Google Trends Data
+```{r fig.width=6, fig.height=4}
+# Line chart
+
+# Convert 'date' column to POSIXct format
+#gtrends_war_web$date <- as.POSIXct(gtrends_war_web$date, format = "%Y-%m-%d")
+
+ggplot(gtrends_war_web, aes(date, hits)) +
+  geom_line(color='darkseagreen3') +
+  theme_minimal() +
+  ggtitle("Google Trends - Evolving Interest in Search Word 'War'") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.title = element_text(hjust = 0.5)) +
+  geom_vline(xintercept = as.POSIXct("2022-02-24"), linetype="dashed", 
+             color = "black", size=0.5) +
+  annotate('label', x=as.POSIXct("2022-02-24"), y=80, 
+           label="Start Russion Invasion of Ukraine", vjust=2, color="black") +
+  geom_vline(xintercept = as.POSIXct("2023-10-07"), linetype="dashed", 
+               color = "black", size=0.5) +
+  annotate('label', x=as.POSIXct("2023-10-07"), y=80, 
+             label="Start Israel-Hammas War", vjust=2, color="black")
+  
+```
+
+```{r}
+# Histogram
+ggplot(gtrends_war_web, aes(hits)) +
+  geom_histogram(color='darkseagreen3', fill='darkseagreen3') +
+  ggtitle("Search Word 'War' Distribution") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.title = element_text(hjust = 0.5))
+```
+
+### Stationarity test and adjustment
+
+Ticker Data
+```{r}
+# Check stationarity
+sapply(ticker_data, adf.test)
+```
+
+Non-stationary are XLK, XLF, XLY, XLE. Make them stationary. Only log the others.
+
+```{r}
+ticker_data_differenced <- NULL
+ticker_data_differenced$XLK.Adjusted <- na.omit(diff(log(ticker_data$XLK.Adjusted)))
+ticker_data_differenced$XLF.Adjusted <- na.omit(diff(log(ticker_data$XLF.Adjusted)))
+ticker_data_differenced$XLY.Adjusted <- na.omit(diff(log(ticker_data$XLY.Adjusted)))
+ticker_data_differenced$XLE.Adjusted <- na.omit(diff(log(ticker_data$XLE.Adjusted)))
+
+# Already stationary ticker series 
+ticker_data_differenced$XLV.Adjusted <- log(ticker_data$XLV.Adjusted)
+ticker_data_differenced$XLU.Adjusted <- log(ticker_data$XLU.Adjusted)
+```
+
+Google Trends Data
+```{r}
+adf.test(gtrends_war_web$hits)
+```
+
+Not stationary and distribution has long tail on right --> Log Diff
+```{r}
+logged_diff_hits <- na.omit(diff(log(gtrends_war_web$hits)))
+
+corresponding_dates <- gtrends_war_web[-1,]$date # +1 due to diff reduction
+
+gtrends_war_web_differenced <- data.frame(
+  date = corresponding_dates,
+  hits = logged_diff_hits
+)
+gtrends_war_web_differenced
+```
+
+Check that differenced time series have same length.
+
+```{r}
+# Check length of time series
+length(gtrends_war_web_differenced$date) == length(ticker_data_differenced$XLK.Adjusted)
+min(gtrends_war_web_differenced$date)
+max(gtrends_war_web_differenced$date)
+```
+
 
 
 
