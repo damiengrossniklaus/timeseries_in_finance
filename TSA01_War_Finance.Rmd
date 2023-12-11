@@ -31,15 +31,25 @@ knitr::opts_chunk$set(echo = TRUE)
 \newpage
 
 
+```{r, eval=FALSE}
+install.packages("readr")
+install.packages("colorspace")
+install.packages("vctrs")
+install.packages("gtrendsR")
+```
+
+
 ```{r, echo=FALSE, results=FALSE, message=FALSE}
 library(quantmod)
 library(tseries)
+#library(readr) #Disable in order to Google trends package to work
 library(gtrendsR)
 library(lubridate)
 library(ggplot2)
 library(zoo)
 library(dplyr)
 library(tidyr)
+library(vars)
 ```
 
 
@@ -108,8 +118,20 @@ gtrends_war_news <- gtrends(
 )$interest_over_time
 ```
 
-Google Trends delivers data always from Sunday weekly. This has to be put to the weekly data from the financial tickers, which always starts at Monday.
 
+```{r, eval=FALSE}
+# If gtrends does not work --> response 429
+library(lubridate)
+
+gtrends_war_web <- read.csv('gtrends_war_web.csv')
+gtrends_war_web <- gtrends_war_web %>%
+  mutate(date = ymd(date))
+
+```
+
+
+
+Google Trends delivers data always from Sunday weekly. This has to be put to the weekly data from the financial tickers, which always starts at Monday.
 
 ```{r}
 # Increase date by one day to match ticker data
@@ -171,7 +193,7 @@ ggplot(ticker_data_df, aes(Value)) +
 # Line chart
 
 # Convert 'date' column to POSIXct format
-#gtrends_war_web$date <- as.POSIXct(gtrends_war_web$date, format = "%Y-%m-%d")
+gtrends_war_web$date <- as.POSIXct(gtrends_war_web$date, format = "%Y-%m-%d")
 
 ggplot(gtrends_war_web, aes(date, hits)) +
   geom_line(color='darkseagreen3') +
@@ -182,7 +204,7 @@ ggplot(gtrends_war_web, aes(date, hits)) +
   geom_vline(xintercept = as.POSIXct("2022-02-24"), linetype="dashed", 
              color = "black", size=0.5) +
   annotate('label', x=as.POSIXct("2022-02-24"), y=80, 
-           label="Start Russion Invasion of Ukraine", vjust=2, color="black") +
+           label="Start Russian Invasion of Ukraine", vjust=2, color="black") +
   geom_vline(xintercept = as.POSIXct("2023-10-07"), linetype="dashed", 
                color = "black", size=0.5) +
   annotate('label', x=as.POSIXct("2023-10-07"), y=80, 
@@ -221,6 +243,10 @@ ticker_data_differenced$XLE.Adjusted <- na.omit(diff(log(ticker_data$XLE.Adjuste
 # Already stationary ticker series 
 ticker_data_differenced$XLV.Adjusted <- log(ticker_data$XLV.Adjusted)
 ticker_data_differenced$XLU.Adjusted <- log(ticker_data$XLU.Adjusted)
+
+# For non differenced time series remove first row
+ticker_data_differenced$XLV.Adjusted <-  ticker_data_differenced$XLV.Adjusted[-1,]
+ticker_data_differenced$XLU.Adjusted <-  ticker_data_differenced$XLU.Adjusted[-1,]
 ```
 
 Google Trends Data
@@ -228,7 +254,7 @@ Google Trends Data
 adf.test(gtrends_war_web$hits)
 ```
 
-Not stationary and distribution has long tail on right --> Log Diff
+Not stationary and distribution has long tail on right --> Log Diff. Although p value is slightly below 0.05
 ```{r}
 logged_diff_hits <- na.omit(diff(log(gtrends_war_web$hits)))
 
@@ -246,13 +272,67 @@ Check that differenced time series have same length.
 ```{r}
 # Check length of time series
 length(gtrends_war_web_differenced$date) == length(ticker_data_differenced$XLK.Adjusted)
+length(gtrends_war_web_differenced$date)
+length(ticker_data_differenced$XLK.Adjusted)
 min(gtrends_war_web_differenced$date)
 max(gtrends_war_web_differenced$date)
 ```
 
 
+```{r}
+df <- merge(gtrends_war_web_differenced, ticker_data_differenced)
+```
+
+
+Create final dataframe
+```{r}
+# Make tickers in list to dataframe
+ticker_data_differenced_df <- do.call(cbind.data.frame, ticker_data_differenced)
+
+# Make date index to column for merging
+ticker_data_differenced_df$date <- rownames(ticker_data_differenced_df)
+
+# Make date in gtrends to character in order to merge
+gtrends_war_web_differenced$date <- format(gtrends_war_web_differenced$date, format = "%Y-%m-%d")
+
+# Merge
+war_ticker_df <- left_join(gtrends_war_web_differenced, ticker_data_differenced_df)
+```
+
 
 ## 4. VAR & Causality Testing
+
+TODO:
+- Check lag.max what to apply
+- Control variable?
+
+```{r}
+# Create ticker list
+ticker_cols <- colnames(war_ticker_df)[3:8]
+
+for (Ticker in ticker_cols) {
+  
+  # Create data for VAR
+  print(Ticker)
+  data_for_var <- cbind(war_interest=war_ticker_df$hits, ticker=war_ticker_df[[Ticker]])
+  
+  # Run VAR model
+  VAR_est <- VAR(data_for_var, ic = "AIC", lag.max = 24)
+  coefs <-coeftest(VAR_est)
+  summ <- summary(VAR_est)
+  
+  print(coefs)
+  print(summ)
+  
+  # Run Granger Causality Test
+  causal <- causality(VAR_est, cause="war_interest")["Granger"]
+  print(causal)
+  
+  # Impulse response functions
+  plot(irf(VAR_est, impulse="war_interest", response="ticker"))
+  
+}
+```
 
 
 ## 5. Results & Discussion
