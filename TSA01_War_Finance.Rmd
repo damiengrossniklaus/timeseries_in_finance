@@ -52,6 +52,11 @@ library(tidyr)
 library(vars)
 ```
 
+TODO:
+* Ticker Section Mentioning in Charts and Code
+* Nach differencing nochmals Stationarity testen
+* Casality testing andere Seite --> Einfluss Ticker auf Trends ausschliessen
+* Add Inflation as Controll Variable
 
 **Potential structure**
 
@@ -80,7 +85,7 @@ Import Time Series Data
 
 TODO: 
 - Justify why Adjusted values and not close values
-- Timeframe: December 2021 until December 2022
+- Timeframe: December 2021 until December 2023
 ```{r}
 # Ticker Data
 ticker_data <- NULL
