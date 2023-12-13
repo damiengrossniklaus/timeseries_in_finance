@@ -279,11 +279,6 @@ max(gtrends_war_web_differenced$date)
 ```
 
 
-```{r}
-df <- merge(gtrends_war_web_differenced, ticker_data_differenced)
-```
-
-
 Create final dataframe
 ```{r}
 # Make tickers in list to dataframe
