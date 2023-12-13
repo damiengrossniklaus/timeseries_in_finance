@@ -1,5 +1,5 @@
 ---
-output: 
+output:
   pdf_document:
     toc: no
 editor_options:
@@ -53,9 +53,12 @@ library(vars)
 ```
 
 TODO:
-* Ticker Section Mentioning in Charts and Code
+* Ticker Section Mentioning in Charts and Code 
+    --> in Einleitung erwähnt und in Grafik angepasst
 * Nach differencing nochmals Stationarity testen
+    --> ergänzt
 * Casality testing andere Seite --> Einfluss Ticker auf Trends ausschliessen
+    --> in Code ergänzt
 * Add Inflation as Controll Variable
 
 **Potential structure**
@@ -72,11 +75,20 @@ TODO:
 
 ## 1. Context and Goal
 
-With recent outbreaks of war (e.g., in Israel or in the Ukraine), the question arises of how stock markets react to this and if there are sectors that profit from such crises. Specifically, the case study should examine if certain indices from specific economic sectors perform well in situations of crisis. To do this, the performance of several sector-specific indices in relation to an overall crisis measure should be compared and evaluated with the goal of examining if positive correlations between situations of crisis and stock market profits exist. Alternatively, the research question could be evaluated by comparing the development of sector-specific indices since the outbreak of the war in the Ukraine with the development of non-sector-specific indices (like SMI or S&P 500). If they perform better than overall indices this would indicate that they profit from war.
+With recent outbreaks of war (e.g., in Israel or in the Ukraine), the question arises of how stock markets react to this and if there are sectors that profit from such crises. Specifically, this case study examines if several indices from specific economic sectors perform well in situations of crisis. The following six indices are included in the analysis:
+* **XLK**: Technology Select Sector
+* **XLF**: Financial Select Sector
+* **XLV**: Health Care Select Sector
+* **XLY**: Consumer Discretionary Select Sector
+* **XLE**: Energy Select Sector
+* **XLU**: Utilities Select Sector
+
+Essentially our research question is the following: *Who are the financial profiteers of war?*. To answer this question, the performance of the sector-specific indices should be compared to an overall crisis measure. As an overall crisis measure the Google Trend data for the search word *"war"* is used. We postulate, that an increased search for this term points to a higher crisis. So in conclusion, we want to examine if there are positive correlations between our crisis measure and stock market profits in the different indices. 
 
 ## 2. Methods
 
-The precise methods to examine the hypothesis are not clear yet and will have to be decided once more methods are introduced in the lectures. However, correlation measurements as well as potential tests for causality will have to be included. If we use the alternative way to answer our research question we could probably use OLS (as described in class last week).
+Our research question is of an exploratory nature. Therefore we don't have a hypothesis going in, as to which indices will perform better under situations of crisis. 
+The method we will us is vector autoregression (VAR). This allows us to measure the influence of our crisis measure on the performance of the different indices. For each index we will calculate a separate model.
 
 ## 3. Data
 
@@ -104,7 +116,7 @@ head(ticker_data)
 ```
 
 
-```{r}
+```{r, eval=FALSE}
 # Google Trends data
 gtrends_war_web <- gtrends(
   keyword = "war",
@@ -124,13 +136,14 @@ gtrends_war_news <- gtrends(
 ```
 
 
-```{r, eval=FALSE}
+```{r}
 # If gtrends does not work --> response 429
 library(lubridate)
 
 gtrends_war_web <- read.csv('gtrends_war_web.csv')
 gtrends_war_web <- gtrends_war_web %>%
   mutate(date = ymd(date))
+head(gtrends_war_web)
 
 ```
 
@@ -171,9 +184,16 @@ ticker_data_df
 
 ```{r}
 # Line Chart
+# New facet label names for ticker_data
+ticker.labs <- c("XLK: Technology", "XLF: Financial", "XLV: Health Care", 
+                 "XLY: Consumer Discretionary", "XLE: Energy", "XLU: Utilities")
+names(ticker.labs) <- c("XLK.Adjusted", "XLF.Adjusted", "XLV.Adjusted",
+                        "XLY.Adjusted", "XLE.Adjusted", "XLU.Adjusted")
+
+# Create the plot
 ggplot(ticker_data_df, aes(Date, Value)) +
   geom_line(color='darkseagreen3') +
-  facet_wrap(~Ticker) +
+  facet_wrap(~Ticker, labeller = labeller(Ticker = ticker.labs)) +
   ggtitle("Ticker Time Series") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
@@ -184,7 +204,7 @@ ggplot(ticker_data_df, aes(Date, Value)) +
 # Histogram
 ggplot(ticker_data_df, aes(Value)) +
   geom_histogram(color='darkseagreen3', fill='darkseagreen3') +
-  facet_wrap(~Ticker) +
+  facet_wrap(~Ticker, labeller = labeller(Ticker = ticker.labs)) +
   ggtitle("Ticker Distributions") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
@@ -193,7 +213,7 @@ ggplot(ticker_data_df, aes(Value)) +
 ```
 
 
-#### Visualize Google Trends Data
+### Visualize Google Trends Data
 ```{r fig.align="center", fig.width=12, fig.height=4}
 # Line chart
 
@@ -230,7 +250,7 @@ ggplot(gtrends_war_web, aes(hits)) +
 
 ### Stationarity test and adjustment
 
-Ticker Data
+#### Ticker Data
 ```{r}
 # Check stationarity
 sapply(ticker_data, adf.test)
@@ -254,12 +274,19 @@ ticker_data_differenced$XLV.Adjusted <-  ticker_data_differenced$XLV.Adjusted[-1
 ticker_data_differenced$XLU.Adjusted <-  ticker_data_differenced$XLU.Adjusted[-1,]
 ```
 
-Google Trends Data
+```{r}
+# Check stationarity again after diff-log transformation
+sapply(ticker_data_differenced, adf.test)
+```
+
+After the diff-log-transformation all the time series are stationary.
+
+#### Google Trends Data
 ```{r}
 adf.test(gtrends_war_web$hits)
 ```
 
-Not stationary and distribution has long tail on right --> Log Diff. Although p value is slightly below 0.05
+Not stationary and distribution has long tail on right --> Log Diff. Although p value is slightly below 0.05.
 ```{r}
 logged_diff_hits <- na.omit(diff(log(gtrends_war_web$hits)))
 
@@ -269,7 +296,8 @@ gtrends_war_web_differenced <- data.frame(
   date = corresponding_dates,
   hits = logged_diff_hits
 )
-gtrends_war_web_differenced
+# Check stationarity after diff-log-transformation
+adf.test(gtrends_war_web_differenced$hits)
 ```
 
 Check that differenced time series have same length.
@@ -284,7 +312,7 @@ max(gtrends_war_web_differenced$date)
 ```
 
 
-Create final dataframe
+### Create final dataframe
 ```{r}
 # Make tickers in list to dataframe
 ticker_data_differenced_df <- do.call(cbind.data.frame, ticker_data_differenced)
@@ -327,6 +355,10 @@ for (Ticker in ticker_cols) {
   # Run Granger Causality Test
   causal <- causality(VAR_est, cause="war_interest")["Granger"]
   print(causal)
+  
+  # Run Granger Causality Test other way (check if index has influence on crisis measure)
+  causal_ticker <- causality(VAR_est, cause="ticker")["Granger"]
+  print(causal_ticker)
   
   # Impulse response functions
   plot(irf(VAR_est, impulse="war_interest", response="ticker"))
