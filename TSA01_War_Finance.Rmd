@@ -76,6 +76,7 @@ TODO:
 ## 1. Context and Goal
 
 With recent outbreaks of war (e.g., in Israel or in the Ukraine), the question arises of how stock markets react to this and if there are sectors that profit from such crises. Specifically, this case study examines if several indices from specific economic sectors perform well in situations of crisis. The following six indices are included in the analysis:
+
 * **XLK**: Technology Select Sector
 * **XLF**: Financial Select Sector
 * **XLV**: Health Care Select Sector
@@ -88,10 +89,22 @@ Essentially our research question is the following: *Who are the financial profi
 ## 2. Methods
 
 Our research question is of an exploratory nature. Therefore we don't have a hypothesis going in, as to which indices will perform better under situations of crisis. 
-The method we will us is vector autoregression (VAR). This allows us to measure the influence of our crisis measure on the performance of the different indices. For each index we will calculate a separate model.
+The method we will us is vector autoregression (VAR). This allows us to measure the influence of our crisis measure on the performance of the different indices. For each index we will calculate a separate model. Furthermore, to address potential spurious correlations a Granger causality test will be conducted for every ticker. However, before a VAR and causality test can be carried out the data in form of different time series has to be imported, cleaned and pre-processed. Concretely, potential seasonal effects and trends in time series have to be identified and adjusted for to achieve stationarity, which characterizes a stabilized mean and variance for the time series over time and will ultimately allow more reliable and accurate modeling. To test the stationarity of a time the "*Augmented Dickey-Fuller Test*" will be carried out. If a time series is non-stationary, lagged differences will be calculated. Lastly, to deal with right skewness and achieve normal distributions in the data, the time series will first be logarithmized before applying the difference.
 
 ## 3. Data
 
+
+**Financial Data**
+
+The financial data used for the paper at hand comes from Yahoo Finance (2023)(**SOURCE**). The data can be retrieved using the `getSynmbols.yahoo()` function from the `quantmod` package. The data represents the weekly adjusted closing prices for the tickers introduced in chapter 1 for the time frame from December 2021 until December 2023. Mentioned time frame was chosen as it captures the start of the Russian invasion of Ukraine as well as the start of the Isreal-Hammas war. Additionally, the time frame and periodicity is considered of good balance between having enough data points as well as keeping the dataset manageable and focused. The decision to use the adjusted closing prices instead of the closing price can be justified that adjusted prices are adapted to address any splits, dividends or capital gain distributions. Lastly, the weekly periodicity of the ticker data was chosen as the Google Trends data comes in weekly measurements.
+
+**Google Trends Data**
+
+lorem ipsum
+
+
+
+https://data.oecd.org/price/inflation-cpi.htm
 
 Import Time Series Data
 
