@@ -31,7 +31,7 @@ knitr::opts_chunk$set(echo = TRUE)
 \newpage
 
 
-```{r, eval=FALSE}
+```{r, eval=FALSE, include=FALSE}
 install.packages("readr")
 install.packages("colorspace")
 install.packages("vctrs")
@@ -39,7 +39,7 @@ install.packages("gtrendsR")
 ```
 
 
-```{r, echo=FALSE, results=FALSE, message=FALSE}
+```{r, echo=FALSE, results=FALSE, message=FALSE, include=FALSE}
 library(quantmod)
 library(tseries)
 #library(readr) #Disable in order to Google trends package to work
@@ -96,13 +96,17 @@ The method we will us is vector autoregression (VAR). This allows us to measure 
 
 **Financial Data**
 
-The financial data used for the paper at hand comes from Yahoo Finance (2023)(**SOURCE**). The data can be retrieved using the `getSynmbols.yahoo()` function from the `quantmod` package. The data represents the weekly adjusted closing prices for the tickers introduced in chapter 1 for the time frame from December 2021 until December 2023. Mentioned time frame was chosen as it captures the start of the Russian invasion of Ukraine as well as the start of the Isreal-Hammas war. Additionally, the time frame and periodicity is considered of good balance between having enough data points as well as keeping the dataset manageable and focused. The decision to use the adjusted closing prices instead of the closing price can be justified that adjusted prices are adapted to address any splits, dividends or capital gain distributions. Lastly, the weekly periodicity of the ticker data was chosen as the Google Trends data comes in weekly measurements.
+The financial data used for the paper at hand comes from Yahoo Finance (2023)(**SOURCE**). The data can be retrieved using the `getSynmbols.yahoo()` function from the `quantmod` package. The data represents the weekly adjusted closing prices for the tickers introduced in chapter 1 for the time frame from December 2021 until December 2023. Mentioned time frame was chosen as it captures the start of the Russian invasion of Ukraine as well as the start of the Isreal-Hammas war. Additionally, the time frame and periodicity is considered of good balance between having enough data points as well as keeping the data set manageable and focused. The decision to use the adjusted closing prices instead of the closing price can be justified that adjusted prices are adapted to address any splits, dividends or capital gain distributions. Lastly, the weekly periodicity of the ticker data was chosen as the Google Trends data comes in weekly measurements.
 
 **Google Trends Data**
 
-lorem ipsum
+To import the Google Trends data the package `gtrendsR` is used. The package allows to query the data of the interest over time for a keyword. In the case of this study the keyword *war* in web searches was chosen, as it is considered to capture all conflicts alike. When it comes to the geographical origin of the searches the whole world was considered as the study aims to give a generalized and non location specific view. Returned data from Google Trends is normalized and reflects the search volume for a keyword on a scale from 0-100, where 100 means very high interest and 0 no interest. (**SOURCE: https://newsinitiative.withgoogle.com/en-gb/resources/trainings/fundamentals/google-trends-understanding-the-data/#:~:text=The%20percentages%20are%20based%20on,for%20the%2030%20days%20prior.**)
 
+https://cran.r-project.org/web/packages/gtrendsR/gtrendsR.pdf
 
+**Inflation Data**
+
+In order to handle potential confounding variables that could cause spurious associations due to influence on the dependent and independent variable, it is important to also include a control variable that represents the general economic state. Therefore, the worldwide inflation rate is included as well, which was retrieved from the OECD. To allow a simple aggregation the mean inflation rate per month for every available country in the data set was calculated.
 
 https://data.oecd.org/price/inflation-cpi.htm
 
