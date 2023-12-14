@@ -8,6 +8,8 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
 ```
 \begin{center}
 \vspace*{75pt}
@@ -31,7 +33,7 @@ knitr::opts_chunk$set(echo = TRUE)
 \newpage
 
 
-```{r, eval=FALSE, include=FALSE}
+```{r, eval=FALSE, echo=FALSE, results=FALSE}
 install.packages("readr")
 install.packages("colorspace")
 install.packages("vctrs")
@@ -63,6 +65,8 @@ TODO:
     --> in Code ergänzt
 * Add Inflation as Controll Variable
     --> angefangen und ergänzt. Bitte kontrollieren.
+    --> Habe noch den den Weekly Economic Index gefunden (siehe weitere Infos in Abschnitt 'Closer Look'). Dieser Index könnte abdecken, was Denis in der Rückmeldung angebracht hat ("relevant control variables (such as the general economic development)"). Aber Inflation würde wohl auch ausreichen.
+
 
 **Potential structure**
 
@@ -76,7 +80,7 @@ TODO:
 - Results & Discussion
 ```
 
-## 1. Context and Goal
+## 1. Introduction
 
 With recent outbreaks of war (e.g., in Israel or in the Ukraine), the question arises of how stock markets react to this and if there are sectors that profit from such crises. Specifically, this case study examines if several indices from specific economic sectors perform well in situations of crisis. The following six indices are included in the analysis:
 
@@ -89,13 +93,12 @@ With recent outbreaks of war (e.g., in Israel or in the Ukraine), the question a
 
 Essentially our research question is the following: *Who are the financial profiteers of war?*. To answer this question, the performance of the sector-specific indices should be compared to an overall crisis measure. As an overall crisis measure the Google Trend data for the search word *"war"* is used. We postulate, that an increased search for this term points to a higher crisis. So in conclusion, we want to examine if there are positive correlations between our crisis measure and stock market profits in the different indices. 
 
-## 2. Methods
+## 2. Methods and Hypotheses
 
 Our research question is of an exploratory nature. Therefore we don't have a hypothesis going in, as to which indices will perform better under situations of crisis. 
 The method we will us is vector autoregression (VAR). This allows us to measure the influence of our crisis measure on the performance of the different indices. For each index we will calculate a separate model. Furthermore, to address potential spurious correlations a Granger causality test will be conducted for every ticker. However, before a VAR and causality test can be carried out the data in form of different time series has to be imported, cleaned and pre-processed. Concretely, potential seasonal effects and trends in time series have to be identified and adjusted for to achieve stationarity, which characterizes a stabilized mean and variance for the time series over time and will ultimately allow more reliable and accurate modeling. To test the stationarity of a time the "*Augmented Dickey-Fuller Test*" will be carried out. If a time series is non-stationary, lagged differences will be calculated. Lastly, to deal with right skewness and achieve normal distributions in the data, the time series will first be logarithmized before applying the difference.
 
-## 3. Data
-
+## 3. Data Sources
 
 **Financial Data**
 
@@ -113,11 +116,14 @@ In order to handle potential confounding variables that could cause spurious ass
 
 https://data.oecd.org/price/inflation-cpi.htm
 
-Import Time Series Data
+
+### Import Time Series Data
+
 
 TODO: 
 - Justify why Adjusted values and not close values
 - Timeframe: December 2021 until December 2023
+
 ```{r, include=FALSE}
 # Ticker Data
 ticker_data <- NULL
@@ -155,7 +161,6 @@ gtrends_war_news <- gtrends(
 )$interest_over_time
 ```
 
-
 ```{r, include=FALSE}
 # If gtrends does not work --> response 429
 library(lubridate)
@@ -167,9 +172,7 @@ head(gtrends_war_web)
 
 ```
 
-
-
-Google Trends delivers data always from Sunday weekly. This has to be put to the weekly data from the financial tickers, which always starts at Monday.
+Google Trends delivers data always starting from Sunday. This has to be transformed in order to fit with the weekly data from the financial tickers, which always start at Monday.
 
 ```{r, include=FALSE}
 # Increase date by one day to match ticker data
@@ -184,11 +187,11 @@ max(gtrends_war_web$date)
 ```{r, include=FALSE}
 # Remove first date of ticker data to match gtrends data
 ticker_data <- ticker_data[-1,]
-ticker_data
+head(ticker_data)
 ```
 
 
-Inflation Data
+### Inflation Data
 ```{r, include=FALSE}
 inflation_data <- read.csv('inflation_rates.csv')
 head(inflation_data)
@@ -218,12 +221,9 @@ max(inflation_data$TIME)
 inflation_november_23 <- subset(inflation_data, TIME == "2023-11")$AVG_INFLATION
 inflation_december_23 <- data.frame(TIME='2023-12', AVG_INFLATION=inflation_november_23)
 
-
 # Create final df
 inflation_df <- bind_rows(inflation_data, inflation_december_23)
 ```
-
-
 
 
 ### Visualize Ticker Data
@@ -295,6 +295,7 @@ ggplot(gtrends_war_web, aes(date, hits)) +
 
 ```
 
+
 ```{r, echo=FALSE, message=FALSE}
 # Histogram
 ggplot(gtrends_war_web, aes(hits)) +
@@ -308,6 +309,7 @@ ggplot(gtrends_war_web, aes(hits)) +
 ### Stationarity test and adjustment
 
 #### Ticker Data
+
 ```{r, include=FALSE}
 # Check stationarity
 sapply(ticker_data, adf.test)
@@ -395,21 +397,31 @@ war_ticker_inflation_df <- left_join(war_ticker_df, inflation_df, by=c('year_mon
 ```
 
 
-## 4. VAR & Causality Testing
+## 4. Results and Discussion
+
+### VAR & Causality Testing
 
 TODO:
 - Check lag.max what to apply
 - Control variable?
+- Allenfalls den Ouptput im for-Loop weglassen und in neuem Kapitel "Closer Look" für den signifikanten Index ergänzen
 
 ```{r, include=FALSE}
 # Create ticker list
 ticker_cols <- colnames(war_ticker_inflation_df)[3:8]
 
+# Create matrix to store p.Values of Granger-Test
+var_ticker <- matrix(NA, ncol = 2, nrow = 6)
+colnames(var_ticker) <- c('p.Value','p.Value.reverse')
+rownames(var_ticker) <- colnames(war_ticker_df)[3:8]
+
 for (Ticker in ticker_cols) {
   
   # Create data for VAR
   print(Ticker)
-  data_for_var <- cbind(war_interest=war_ticker_inflation_df$hits, ticker=war_ticker_inflation_df[[Ticker]], inflation=war_ticker_inflation_df$AVG_INFLATION)
+  data_for_var <- cbind(war_interest=war_ticker_inflation_df$hits,
+                        ticker=war_ticker_inflation_df[[Ticker]],
+                        inflation=war_ticker_inflation_df$AVG_INFLATION)
   
   # Run VAR model
   VAR_est <- VAR(data_for_var, ic = "AIC", lag.max = 24)
@@ -422,18 +434,49 @@ for (Ticker in ticker_cols) {
   # Run Granger Causality Test
   causal <- causality(VAR_est, cause="war_interest")["Granger"]
   print(causal)
+  var_ticker[Ticker,1] <- causal$Granger$p.value
   
   # Run Granger Causality Test other way (check if index has influence on crisis measure)
   causal_ticker <- causality(VAR_est, cause="ticker")["Granger"]
   print(causal_ticker)
+  var_ticker[Ticker,2] <- causal_ticker$Granger$p.value
   
   # Impulse response functions
   plot(irf(VAR_est, impulse="war_interest", response="ticker"))
   
 }
+
 ```
 
 
-## 5. Results & Discussion
+```{r, echo=FALSE}
+# Print results of Granger Test
+print(var_ticker[order(var_ticker[,1], decreasing=FALSE),])
+```
+
+Only the Consumer Discretionary Select Sector seems to be influenced by the crisis measure. It is the only index with a significant p-value for the Granger test.
+
+### Closer Look into Consumer Discretionary Select Sector (XLY)
+
+
+```{r, echo=FALSE}
+# Possible control variable: Weekly economic index (https://fred.stlouisfed.org/series/WEI)
+#install.packages("fredr")
+#library(fredr)
+API_key = '2faca85963d14d8773a961ebdf748e15'
+
+fredr_set_key(API_key)
+
+fredr(
+  series_id = "WEI",
+  observation_start = as.Date("2021-12-01"),
+  observation_end = as.Date("2023-12-01")
+)
+
+```
+
+
+
+## 5. Conclusion
 
 
