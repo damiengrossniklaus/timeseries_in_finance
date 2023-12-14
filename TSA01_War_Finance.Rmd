@@ -52,6 +52,8 @@ library(tidyr)
 library(vars)
 ```
 
+
+```{r, eval=FALSE, include=FALSE}
 TODO:
 * Ticker Section Mentioning in Charts and Code 
     --> in Einleitung erwähnt und in Grafik angepasst
@@ -60,6 +62,7 @@ TODO:
 * Casality testing andere Seite --> Einfluss Ticker auf Trends ausschliessen
     --> in Code ergänzt
 * Add Inflation as Controll Variable
+    --> angefangen und ergänzt. Bitte kontrollieren.
 
 **Potential structure**
 
@@ -71,7 +74,7 @@ TODO:
   - Preprocessing
 - VAR & Causality Testing
 - Results & Discussion
-
+```
 
 ## 1. Context and Goal
 
@@ -115,7 +118,7 @@ Import Time Series Data
 TODO: 
 - Justify why Adjusted values and not close values
 - Timeframe: December 2021 until December 2023
-```{r}
+```{r, include=FALSE}
 # Ticker Data
 ticker_data <- NULL
 tickers_index <- c("XLK", "XLF", "XLV", "XLY", "XLE", "XLU")
@@ -133,17 +136,17 @@ head(ticker_data)
 ```
 
 
-```{r, eval=FALSE}
+```{r, eval=FALSE, include=FALSE}
 # Google Trends data
 gtrends_war_web <- gtrends(
   keyword = "war",
   time = "2021-11-30 2023-12-01",
   gprop = "web"
 )$interest_over_time
-gtrends_war_web
+head(gtrends_war_web)
 ```
 
-```{r, eval=FALSE}
+```{r, eval=FALSE, include=FALSE}
 # Too many requests exclude?
 gtrends_war_news <- gtrends(
   keyword = "war",
@@ -153,7 +156,7 @@ gtrends_war_news <- gtrends(
 ```
 
 
-```{r}
+```{r, include=FALSE}
 # If gtrends does not work --> response 429
 library(lubridate)
 
@@ -168,7 +171,7 @@ head(gtrends_war_web)
 
 Google Trends delivers data always from Sunday weekly. This has to be put to the weekly data from the financial tickers, which always starts at Monday.
 
-```{r}
+```{r, include=FALSE}
 # Increase date by one day to match ticker data
 gtrends_war_web$date <- gtrends_war_web$date + days(1)
 
@@ -178,17 +181,54 @@ min(gtrends_war_web$date)
 max(gtrends_war_web$date)
 ```
 
-```{r}
+```{r, include=FALSE}
 # Remove first date of ticker data to match gtrends data
 ticker_data <- ticker_data[-1,]
 ticker_data
 ```
 
 
+Inflation Data
+```{r, include=FALSE}
+inflation_data <- read.csv('inflation_rates.csv')
+head(inflation_data)
+min(inflation_data$TIME)
+max(inflation_data$TIME)
+```
+
+Aggregation and preprocessing
+```{r, include=FALSE}
+# Select dates from December 2021 until December 2023
+inflation_data <- inflation_data %>%
+  filter(TIME >= '2021-12' & TIME <= '2023-12')
+
+# Take mean per month
+inflation_data <- inflation_data %>%
+  group_by(TIME) %>%
+  mutate(AVG_INFLATION = mean(Value)) %>%
+  ungroup() %>%
+  dplyr::select(TIME, AVG_INFLATION)
+
+# Drop duplicates from ungrouping
+inflation_data <- inflation_data %>%
+  distinct(TIME, AVG_INFLATION, .keep_all = TRUE)
+
+# Max date is 2023-11 assume that this stays same for 2023-12
+max(inflation_data$TIME)
+inflation_november_23 <- subset(inflation_data, TIME == "2023-11")$AVG_INFLATION
+inflation_december_23 <- data.frame(TIME='2023-12', AVG_INFLATION=inflation_november_23)
+
+
+# Create final df
+inflation_df <- bind_rows(inflation_data, inflation_december_23)
+```
+
+
+
 
 ### Visualize Ticker Data
 
-```{r}
+```{r, include=FALSE}
 # Visualization
 ticker_data_df <- fortify.zoo(ticker_data)
 colnames(ticker_data_df)[1] <- "Date"
@@ -196,10 +236,10 @@ ticker_data_df <- gather(ticker_data_df, key="Ticker", value="Value",
                          c("XLK.Adjusted", "XLF.Adjusted", "XLV.Adjusted", 
                            "XLY.Adjusted", "XLE.Adjusted", "XLU.Adjusted"), -Date)
 
-ticker_data_df
+head(ticker_data_df)
 ```
 
-```{r}
+```{r, echo=FALSE}
 # Line Chart
 # New facet label names for ticker_data
 ticker.labs <- c("XLK: Technology", "XLF: Financial", "XLV: Health Care", 
@@ -217,7 +257,7 @@ ggplot(ticker_data_df, aes(Date, Value)) +
         plot.title = element_text(hjust = 0.5))
 ```
 
-```{r}
+```{r, echo=FALSE, message=FALSE}
 # Histogram
 ggplot(ticker_data_df, aes(Value)) +
   geom_histogram(color='darkseagreen3', fill='darkseagreen3') +
@@ -231,7 +271,7 @@ ggplot(ticker_data_df, aes(Value)) +
 
 
 ### Visualize Google Trends Data
-```{r fig.align="center", fig.width=12, fig.height=4}
+```{r fig.align="center", fig.width=12, fig.height=4, echo=FALSE}
 # Line chart
 
 # Convert 'date' column to POSIXct format
@@ -255,7 +295,7 @@ ggplot(gtrends_war_web, aes(date, hits)) +
 
 ```
 
-```{r}
+```{r, echo=FALSE, message=FALSE}
 # Histogram
 ggplot(gtrends_war_web, aes(hits)) +
   geom_histogram(color='darkseagreen3', fill='darkseagreen3') +
@@ -268,14 +308,14 @@ ggplot(gtrends_war_web, aes(hits)) +
 ### Stationarity test and adjustment
 
 #### Ticker Data
-```{r}
+```{r, include=FALSE}
 # Check stationarity
 sapply(ticker_data, adf.test)
 ```
 
 Non-stationary are XLK, XLF, XLY, XLE. Make them stationary. Only log the others.
 
-```{r}
+```{r, include=FALSE}
 ticker_data_differenced <- NULL
 ticker_data_differenced$XLK.Adjusted <- na.omit(diff(log(ticker_data$XLK.Adjusted)))
 ticker_data_differenced$XLF.Adjusted <- na.omit(diff(log(ticker_data$XLF.Adjusted)))
@@ -291,7 +331,7 @@ ticker_data_differenced$XLV.Adjusted <-  ticker_data_differenced$XLV.Adjusted[-1
 ticker_data_differenced$XLU.Adjusted <-  ticker_data_differenced$XLU.Adjusted[-1,]
 ```
 
-```{r}
+```{r, include=FALSE}
 # Check stationarity again after diff-log transformation
 sapply(ticker_data_differenced, adf.test)
 ```
@@ -299,12 +339,12 @@ sapply(ticker_data_differenced, adf.test)
 After the diff-log-transformation all the time series are stationary.
 
 #### Google Trends Data
-```{r}
+```{r, include=FALSE}
 adf.test(gtrends_war_web$hits)
 ```
 
 Not stationary and distribution has long tail on right --> Log Diff. Although p value is slightly below 0.05.
-```{r}
+```{r, include=FALSE}
 logged_diff_hits <- na.omit(diff(log(gtrends_war_web$hits)))
 
 corresponding_dates <- gtrends_war_web[-1,]$date # +1 due to diff reduction
@@ -319,7 +359,7 @@ adf.test(gtrends_war_web_differenced$hits)
 
 Check that differenced time series have same length.
 
-```{r}
+```{r, include=FALSE}
 # Check length of time series
 length(gtrends_war_web_differenced$date) == length(ticker_data_differenced$XLK.Adjusted)
 length(gtrends_war_web_differenced$date)
@@ -330,7 +370,7 @@ max(gtrends_war_web_differenced$date)
 
 
 ### Create final dataframe
-```{r}
+```{r, include=FALSE}
 # Make tickers in list to dataframe
 ticker_data_differenced_df <- do.call(cbind.data.frame, ticker_data_differenced)
 
@@ -344,6 +384,16 @@ gtrends_war_web_differenced$date <- format(gtrends_war_web_differenced$date, for
 war_ticker_df <- left_join(gtrends_war_web_differenced, ticker_data_differenced_df)
 ```
 
+Add inflation data
+```{r, include=FALSE}
+# Create year month column for joining inflation data
+war_ticker_df <- war_ticker_df %>%
+  mutate(year_month = format(as.Date(date), "%Y-%m"))
+
+# Join dataframe
+war_ticker_inflation_df <- left_join(war_ticker_df, inflation_df, by=c('year_month'='TIME'))
+```
+
 
 ## 4. VAR & Causality Testing
 
@@ -351,15 +401,15 @@ TODO:
 - Check lag.max what to apply
 - Control variable?
 
-```{r}
+```{r, include=FALSE}
 # Create ticker list
-ticker_cols <- colnames(war_ticker_df)[3:8]
+ticker_cols <- colnames(war_ticker_inflation_df)[3:8]
 
 for (Ticker in ticker_cols) {
   
   # Create data for VAR
   print(Ticker)
-  data_for_var <- cbind(war_interest=war_ticker_df$hits, ticker=war_ticker_df[[Ticker]])
+  data_for_var <- cbind(war_interest=war_ticker_inflation_df$hits, ticker=war_ticker_inflation_df[[Ticker]], inflation=war_ticker_inflation_df$AVG_INFLATION)
   
   # Run VAR model
   VAR_est <- VAR(data_for_var, ic = "AIC", lag.max = 24)
@@ -367,7 +417,7 @@ for (Ticker in ticker_cols) {
   summ <- summary(VAR_est)
   
   print(coefs)
-  print(summ)
+  #print(summ)
   
   # Run Granger Causality Test
   causal <- causality(VAR_est, cause="war_interest")["Granger"]
