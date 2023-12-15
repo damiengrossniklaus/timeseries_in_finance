@@ -221,6 +221,37 @@ inflation_december_23 <- data.frame(TIME='2023-12', AVG_INFLATION=inflation_nove
 inflation_df <- bind_rows(inflation_data, inflation_december_23)
 ```
 
+Take only USA
+```{r, include=FALSE}
+# Select dates from December 2021 until December 2023
+inflation_data <- inflation_data %>%
+  filter(TIME >= '2021-12' & TIME <= '2023-12')
+
+# Take mean per month
+inflation_data <- inflation_data %>%
+  filter(LOCATION == 'USA') %>%
+  mutate(AVG_INFLATION = Value) %>%
+  dplyr::select(TIME, AVG_INFLATION)
+
+
+inflation_data
+
+# Drop duplicates from ungrouping
+inflation_data <- inflation_data %>%
+  distinct(TIME, AVG_INFLATION, .keep_all = TRUE)
+
+# Max date is 2023-10 assume that this stays same for 2023-11 and 2023-12
+max(inflation_data$TIME)
+inflation_october_23 <- subset(inflation_data, TIME == "2023-10")$AVG_INFLATION
+inflation_november_23 <- data.frame(TIME='2023-11', AVG_INFLATION=inflation_october_23)
+inflation_december_23 <- data.frame(TIME='2023-12', AVG_INFLATION=inflation_october_23)
+
+# Create final df
+inflation_data <- bind_rows(inflation_data, inflation_november_23)
+inflation_df <- bind_rows(inflation_data, inflation_december_23)
+```
+
+
 
 ### Visualize Ticker Data
 
@@ -466,13 +497,13 @@ for (Ticker in ticker_cols) {
   summ <- summary(VAR_est)
   lag_selected <- VARselect(data_for_var, lag.max = 24, type = "both")
   
-  print(coefs)
-  print(summ)
+  #print(coefs)
+  #print(summ)
   print(lag_selected)
   
   # Run Granger Causality Test
   causal <- causality(VAR_est, cause="war_interest")["Granger"]
-  print(causal)
+  #print(causal)
   var_ticker[Ticker,1] <- causal$Granger$p.value
   
   # Run Granger Causality Test other way (check if index has influence on crisis measure)
@@ -482,7 +513,7 @@ for (Ticker in ticker_cols) {
   
   # Run Granger Causality Test for inflation
   causal_ticker <- causality(VAR_est, cause="inflation")["Granger"]
-  print(causal_ticker)
+  #print(causal_ticker)
   var_ticker[Ticker,3] <- causal_ticker$Granger$p.value
   
   # Impulse response functions
