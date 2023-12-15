@@ -82,14 +82,10 @@ TODO:
 
 ## 1. Introduction
 
-With recent outbreaks of war (e.g., in Israel or in the Ukraine), the question arises of how stock markets react to this and if there are sectors that profit from such crises. Specifically, this case study examines if several indices from specific economic sectors perform well in situations of crisis. The following six indices are included in the analysis:
+With recent outbreaks of war (e.g., in Israel or in the Ukraine), the question arises of how stock markets react to this and if there are sectors that profit from such crises. Specifically, this case study examines if several indices from specific economic sectors perform well in situations of crisis. The following two indices are included in the analysis:
 
-* **XLK**: Technology Select Sector
-* **XLF**: Financial Select Sector
-* **XLV**: Health Care Select Sector
-* **XLY**: Consumer Discretionary Select Sector
-* **XLE**: Energy Select Sector
-* **XLU**: Utilities Select Sector
+* **XLI**: Industrial Select Sector
+* **XLB**: Materials Select Sector
 
 Essentially our research question is the following: *Who are the financial profiteers of war?*. To answer this question, the performance of the sector-specific indices should be compared to an overall crisis measure. As an overall crisis measure the Google Trend data for the search word *"war"* is used. We postulate, that an increased search for this term points to a higher crisis. So in conclusion, we want to examine if there are positive correlations between our crisis measure and stock market profits in the different indices. 
 
@@ -127,7 +123,7 @@ TODO:
 ```{r, include=FALSE}
 # Ticker Data
 ticker_data <- NULL
-tickers_index <- c("XLK", "XLF", "XLV", "XLY", "XLE", "XLU")
+tickers_index <- c("XLI", "XLB")
 
 for (Ticker in tickers_index){
   ticker_data <- cbind(ticker_data,
@@ -136,7 +132,7 @@ for (Ticker in tickers_index){
 }
 
 # Check length and min max date
-length(ticker_data$XLK.Adjusted)
+length(ticker_data$XLI.Adjusted)
 summary(ticker_data)[c(1, 6)]
 head(ticker_data)
 ```
@@ -233,8 +229,7 @@ inflation_df <- bind_rows(inflation_data, inflation_december_23)
 ticker_data_df <- fortify.zoo(ticker_data)
 colnames(ticker_data_df)[1] <- "Date"
 ticker_data_df <- gather(ticker_data_df, key="Ticker", value="Value", 
-                         c("XLK.Adjusted", "XLF.Adjusted", "XLV.Adjusted", 
-                           "XLY.Adjusted", "XLE.Adjusted", "XLU.Adjusted"), -Date)
+                         c("XLI.Adjusted", "XLB.Adjusted"), -Date)
 
 head(ticker_data_df)
 ```
@@ -242,10 +237,8 @@ head(ticker_data_df)
 ```{r, echo=FALSE}
 # Line Chart
 # New facet label names for ticker_data
-ticker.labs <- c("XLK: Technology", "XLF: Financial", "XLV: Health Care", 
-                 "XLY: Consumer Discretionary", "XLE: Energy", "XLU: Utilities")
-names(ticker.labs) <- c("XLK.Adjusted", "XLF.Adjusted", "XLV.Adjusted",
-                        "XLY.Adjusted", "XLE.Adjusted", "XLU.Adjusted")
+ticker.labs <- c("XLI: Industrial", "XLB: Materials")
+names(ticker.labs) <- c("XLI.Adjusted", "XLB.Adjusted")
 
 # Create the plot
 ggplot(ticker_data_df, aes(Date, Value)) +
@@ -306,6 +299,31 @@ ggplot(gtrends_war_web, aes(hits)) +
         plot.title = element_text(hjust = 0.5))
 ```
 
+### Visualize Inflation Data
+```{r fig.align="center", fig.width=12, fig.height=4, echo=FALSE}
+# Line chart
+
+ggplot(inflation_df, aes(TIME, AVG_INFLATION)) +
+  geom_line(color='darkseagreen3', group = 1) +
+  theme_minimal() +
+  ggtitle("Inflation - Global average") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.title = element_text(hjust = 0.5))
+
+```
+
+
+```{r, echo=FALSE, message=FALSE}
+# Histogram
+ggplot(inflation_df, aes(AVG_INFLATION)) +
+  geom_histogram(color='darkseagreen3', fill='darkseagreen3') +
+  ggtitle("Inflation Distribution") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.title = element_text(hjust = 0.5))
+```
+
+
 ### Stationarity test and adjustment
 
 #### Ticker Data
@@ -315,22 +333,17 @@ ggplot(gtrends_war_web, aes(hits)) +
 sapply(ticker_data, adf.test)
 ```
 
-Non-stationary are XLK, XLF, XLY, XLE. Make them stationary. Only log the others.
+XLB is non-stationary. Make it stationary. XLI is stationary, therefore only log it.
 
 ```{r, include=FALSE}
 ticker_data_differenced <- NULL
-ticker_data_differenced$XLK.Adjusted <- na.omit(diff(log(ticker_data$XLK.Adjusted)))
-ticker_data_differenced$XLF.Adjusted <- na.omit(diff(log(ticker_data$XLF.Adjusted)))
-ticker_data_differenced$XLY.Adjusted <- na.omit(diff(log(ticker_data$XLY.Adjusted)))
-ticker_data_differenced$XLE.Adjusted <- na.omit(diff(log(ticker_data$XLE.Adjusted)))
+ticker_data_differenced$XLB.Adjusted <- na.omit(diff(log(ticker_data$XLB.Adjusted)))
 
 # Already stationary ticker series 
-ticker_data_differenced$XLV.Adjusted <- log(ticker_data$XLV.Adjusted)
-ticker_data_differenced$XLU.Adjusted <- log(ticker_data$XLU.Adjusted)
+ticker_data_differenced$XLI.Adjusted <- log(ticker_data$XLI.Adjusted)
 
 # For non differenced time series remove first row
-ticker_data_differenced$XLV.Adjusted <-  ticker_data_differenced$XLV.Adjusted[-1,]
-ticker_data_differenced$XLU.Adjusted <-  ticker_data_differenced$XLU.Adjusted[-1,]
+ticker_data_differenced$XLI.Adjusted <-  ticker_data_differenced$XLI.Adjusted[-1,]
 ```
 
 ```{r, include=FALSE}
@@ -370,6 +383,27 @@ min(gtrends_war_web_differenced$date)
 max(gtrends_war_web_differenced$date)
 ```
 
+#### Inflation Data
+```{r, include=FALSE}
+adf.test(inflation_df$AVG_INFLATION)
+```
+
+Inflation time series is not stationary.
+
+```{r, include=FALSE}
+diff_inflation <- na.omit(diff(log(inflation_df$AVG_INFLATION)))
+
+corresponding_dates <- inflation_df[-1,]$TIME # +1 due to diff reduction
+
+inflation_differenced <- data.frame(
+  TIME = corresponding_dates,
+  AVG_INFLATION = diff_inflation
+)
+# Check stationarity after diff-log-transformation
+adf.test(inflation_differenced$AVG_INFLATION)
+```
+
+
 
 ### Create final dataframe
 ```{r, include=FALSE}
@@ -393,7 +427,10 @@ war_ticker_df <- war_ticker_df %>%
   mutate(year_month = format(as.Date(date), "%Y-%m"))
 
 # Join dataframe
-war_ticker_inflation_df <- left_join(war_ticker_df, inflation_df, by=c('year_month'='TIME'))
+war_ticker_inflation_df <- left_join(war_ticker_df, inflation_differenced, by=c('year_month'='TIME'))
+
+# Delete NA's that were introduced because of differencing of inflation
+war_ticker_inflation_df <- na.omit(war_ticker_inflation_df)
 ```
 
 
@@ -408,12 +445,12 @@ TODO:
 
 ```{r, include=FALSE}
 # Create ticker list
-ticker_cols <- colnames(war_ticker_inflation_df)[3:8]
+ticker_cols <- colnames(war_ticker_inflation_df)[3:4]
 
 # Create matrix to store p.Values of Granger-Test
-var_ticker <- matrix(NA, ncol = 2, nrow = 6)
-colnames(var_ticker) <- c('p.Value','p.Value.reverse')
-rownames(var_ticker) <- colnames(war_ticker_df)[3:8]
+var_ticker <- matrix(NA, ncol = 3, nrow = 2)
+colnames(var_ticker) <- c('p.Value','p.Value.reversed', 'p.Value.inflation')
+rownames(var_ticker) <- colnames(war_ticker_df)[3:4]
 
 for (Ticker in ticker_cols) {
   
@@ -441,6 +478,11 @@ for (Ticker in ticker_cols) {
   print(causal_ticker)
   var_ticker[Ticker,2] <- causal_ticker$Granger$p.value
   
+  # Run Granger Causality Test for inflation
+  causal_ticker <- causality(VAR_est, cause="inflation")["Granger"]
+  print(causal_ticker)
+  var_ticker[Ticker,3] <- causal_ticker$Granger$p.value
+  
   # Impulse response functions
   plot(irf(VAR_est, impulse="war_interest", response="ticker"))
   
@@ -454,7 +496,7 @@ for (Ticker in ticker_cols) {
 print(var_ticker[order(var_ticker[,1], decreasing=FALSE),])
 ```
 
-Only the Consumer Discretionary Select Sector seems to be influenced by the crisis measure. It is the only index with a significant p-value for the Granger test.
+The crisis measure does not have a significant influence on the two sectors. Only inflation seems to have an influence on the other two measures.
 
 ### Closer Look into Consumer Discretionary Select Sector (XLY)
 
@@ -462,7 +504,7 @@ Only the Consumer Discretionary Select Sector seems to be influenced by the cris
 ```{r, echo=FALSE}
 # Possible control variable: Weekly economic index (https://fred.stlouisfed.org/series/WEI)
 #install.packages("fredr")
-#library(fredr)
+library(fredr)
 API_key = '2faca85963d14d8773a961ebdf748e15'
 
 fredr_set_key(API_key)
