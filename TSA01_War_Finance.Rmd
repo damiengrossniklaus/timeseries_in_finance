@@ -283,7 +283,7 @@ ggplot(gtrends_war_web, aes(date, hits)) +
   geom_vline(xintercept = as.POSIXct("2023-10-07"), linetype="dashed", 
                color = "black", size=0.5) +
   annotate('label', x=as.POSIXct("2023-10-07"), y=80, 
-             label="Start Israel-Hammas War", vjust=2, color="black")
+             label="Start Israel-Hamas War", vjust=2, color="black")
   
 
 ```
@@ -464,9 +464,11 @@ for (Ticker in ticker_cols) {
   VAR_est <- VAR(data_for_var, ic = "AIC", lag.max = 24)
   coefs <-coeftest(VAR_est)
   summ <- summary(VAR_est)
+  lag_selected <- VARselect(data_for_var, lag.max = 24, type = "both")
   
   print(coefs)
-  #print(summ)
+  print(summ)
+  print(lag_selected)
   
   # Run Granger Causality Test
   causal <- causality(VAR_est, cause="war_interest")["Granger"]
