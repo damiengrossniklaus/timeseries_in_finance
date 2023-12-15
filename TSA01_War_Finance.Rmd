@@ -78,6 +78,14 @@ TODO:
   - Preprocessing
 - VAR & Causality Testing
 - Results & Discussion
+
+
+**Points to consider:**
+- USA = Mittelpunkt ticker
+- Lag.max = 21 --> grösster möglicher Wert (interesse an gesamter Zeitdauer)
+- Inflation begründen (gutes Indiz Wirtschaft)
+- Stationarity untersuchen
+- Logarithmieren mehr erklären/untersuchen (line plot nach diff(log()))
 ```
 
 ## 1. Introduction
@@ -377,6 +385,7 @@ ticker_data_differenced$XLI.Adjusted <- log(ticker_data$XLI.Adjusted)
 ticker_data_differenced$XLI.Adjusted <-  ticker_data_differenced$XLI.Adjusted[-1,]
 ```
 
+
 ```{r, include=FALSE}
 # Check stationarity again after diff-log transformation
 sapply(ticker_data_differenced, adf.test)
@@ -422,9 +431,9 @@ adf.test(inflation_df$AVG_INFLATION)
 Inflation time series is not stationary.
 
 ```{r, include=FALSE}
-diff_inflation <- na.omit(diff(log(inflation_df$AVG_INFLATION)))
+diff_inflation <- na.omit(diff(diff(log(inflation_df$AVG_INFLATION))))
 
-corresponding_dates <- inflation_df[-1,]$TIME # +1 due to diff reduction
+corresponding_dates <- inflation_df[c(-1, -2),]$TIME # +1 due to diff reduction
 
 inflation_differenced <- data.frame(
   TIME = corresponding_dates,
@@ -433,7 +442,6 @@ inflation_differenced <- data.frame(
 # Check stationarity after diff-log-transformation
 adf.test(inflation_differenced$AVG_INFLATION)
 ```
-
 
 
 ### Create final dataframe
@@ -492,10 +500,10 @@ for (Ticker in ticker_cols) {
                         inflation=war_ticker_inflation_df$AVG_INFLATION)
   
   # Run VAR model
-  VAR_est <- VAR(data_for_var, ic = "AIC", lag.max = 24)
+  VAR_est <- VAR(data_for_var, ic = "AIC", lag.max = 21)
   coefs <-coeftest(VAR_est)
   summ <- summary(VAR_est)
-  lag_selected <- VARselect(data_for_var, lag.max = 24, type = "both")
+  lag_selected <- VARselect(data_for_var, lag.max = 21, type = "both")
   
   #print(coefs)
   #print(summ)
@@ -503,7 +511,7 @@ for (Ticker in ticker_cols) {
   
   # Run Granger Causality Test
   causal <- causality(VAR_est, cause="war_interest")["Granger"]
-  #print(causal)
+  print(causal)
   var_ticker[Ticker,1] <- causal$Granger$p.value
   
   # Run Granger Causality Test other way (check if index has influence on crisis measure)
@@ -513,7 +521,7 @@ for (Ticker in ticker_cols) {
   
   # Run Granger Causality Test for inflation
   causal_ticker <- causality(VAR_est, cause="inflation")["Granger"]
-  #print(causal_ticker)
+  print(causal_ticker)
   var_ticker[Ticker,3] <- causal_ticker$Granger$p.value
   
   # Impulse response functions
