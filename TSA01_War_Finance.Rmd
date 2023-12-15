@@ -376,9 +376,9 @@ Check that differenced time series have same length.
 
 ```{r, include=FALSE}
 # Check length of time series
-length(gtrends_war_web_differenced$date) == length(ticker_data_differenced$XLK.Adjusted)
+length(gtrends_war_web_differenced$date) == length(ticker_data_differenced$XLI.Adjusted)
 length(gtrends_war_web_differenced$date)
-length(ticker_data_differenced$XLK.Adjusted)
+length(ticker_data_differenced$XLI.Adjusted)
 min(gtrends_war_web_differenced$date)
 max(gtrends_war_web_differenced$date)
 ```
