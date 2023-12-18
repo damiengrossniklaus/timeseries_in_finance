@@ -1,11 +1,12 @@
 ---
 output:
-  word_document:
-    toc: no
   pdf_document:
     toc: no
 editor_options:
   chunk_output_type: console
+header-includes:
+  - \pagenumbering{gobble}
+fontsize: 12pt  
 ---
 
 ```{r setup, include=FALSE}
@@ -33,7 +34,7 @@ knitr::opts_chunk$set(message = FALSE)
 \tableofcontents
 ```
 \newpage
-
+\pagenumbering{arabic}
 
 ```{r, eval=FALSE, echo=FALSE, results=FALSE}
 install.packages("readr")
@@ -100,11 +101,11 @@ Essentially our research question is the following: *Who are the financial profi
 
 ## 2. Methods and Hypotheses
 
-The method we will us is vector autoregression (VAR). This allows us to measure the influence of our crisis measure on the performance of the different indices. For each index we will calculate a separate model. Furthermore, to address potential spurious correlations we include inflation as a control variable in our models. To test for a causal relationship between the crisis measure and the indices a Granger causality test will be conducted for every index. 
+The method we will us is vector autoregression (VAR). This allows us to measure the influence of our crisis measure on the performance of the different indices. For each index we will calculate a separate model. Furthermore, to address potential spurious correlations we include inflation as a control variable in our models. To test for a causal relationship between the crisis measure and the indices a "*Granger Causality Test*" will be conducted for every index. 
 
 Before a VAR and causality test can be carried out the different time series (indices, crisis measure and inflation) have to be imported, cleaned and pre-processed. Specifically, potential seasonal effects and trends in each time series have to be identified and adjusted for to achieve stationarity. A stationary time series is characterized by a stabilized mean and variance over time and will ultimately allow more reliable and accurate modeling. To test the stationarity of a time series the "*Augmented Dickey-Fuller Test*" will be carried out. Furthermore, the stationarity is checked by visualising the time series. If a time series is non-stationary, lagged differences will be calculated. Lastly, to get continuous growth rates, the time series will first be logaritmized before applying the difference.
 
-The two chosen indices both encompass companies that could profit from war. The industrials select sector has among others defense companies and the materials select sector steel production companies in it. Our hypothesis therefor is, that these two sectors are likely to profit from war and that our crisis measure will have a positive influence on these indices. In an analysis done on the performance of different sectors during world war II these sectors were not under the best performing sectors. Instead, printing & and publishing and beer & liquor performed best.^[Source: https://www.etfstream.com/articles/which-sectors-and-factors-outperform-in-wartime] Nevertheless, we want to check if our assumption holds true in todays economy under the current crisis.
+The two chosen indices both encompass companies that could profit from war. The industrials select sector has among others defense companies and the materials select sector steel production companies in it. Our hypothesis therefore is, that these two sectors are likely to profit from war and that our crisis measure will have a positive influence on these indices. In an analysis done on the performance of different sectors during world war II these sectors were not under the best performing sectors. Instead, printing & and publishing and beer & liquor performed best.^[Source: https://www.etfstream.com/articles/which-sectors-and-factors-outperform-in-wartime] Nevertheless, we want to check if our assumption holds true in todays economy under the current crisis.
 
 ## 3. Data Sources
 
@@ -145,8 +146,8 @@ gtrends_war_web <- read.csv('gtrends_war_web.csv')
 gtrends_war_web <- gtrends_war_web %>%
   mutate(date = ymd(date))
 head(gtrends_war_web)
-
 ```
+
 
 ```{r, include=FALSE}
 # Increase date by one day to match ticker data --> starts on Sunday, Ticker start on Monday
@@ -200,7 +201,7 @@ inflation_df <- bind_rows(inflation_data, inflation_december_23)
 
 ### **Financial Data**
 
-The financial data used for this analysis comes from Yahoo Finance (2023)^[Source: https://finance.yahoo.com/]. The data can be retrieved using the `getSynmbols.yahoo()` function from the `quantmod` package. The data represents the weekly adjusted closing prices for the tickers introduced in chapter 1 for the time frame from December 2021 until December 2023. The mentioned time frame was chosen as it captures the start of the Russian invasion of the Ukraine as well as the start of the Israel-Hamas war. Additionally, the time frame and periodicity should have a good balance between having enough data points as well as keeping the data set manageable and focused. Adjusted closing prices were chosen over closing prices because they are adapted to address any splits, dividends or capital gain distributions. Lastly, the weekly periodicity of the ticker data was chosen as the Google Trends data comes in weekly measurements.
+The financial data used for this analysis comes from Yahoo Finance (2023)^[Source: https://finance.yahoo.com/]. The data can be retrieved using the `getSynmbols.yahoo()` function from the `quantmod` package. The data represents the weekly adjusted closing prices for the tickers introduced in chapter 1 for the time frame from December 2021 until December 2023. The mentioned time frame was chosen as it captures the start of the Russian invasion of the Ukraine as well as the start of the Israel-Hamas war. Additionally, the time frame and periodicity should have a good balance between having enough data points as well as keeping the data set manageable and focused. Adjusted closing prices were chosen over closing prices because they are adapted to address any splits, dividends or capital gain distributions^[Souce: https://groww.in/p/adjusted-closing-price]. Lastly, the weekly periodicity of the ticker data was chosen as the Google Trends data comes in weekly measurements.
 
 When we look at the plot of the two indices we see that they are not stationary. In the materials sector the variance doesn't seem to be constant and also there might be some seasonality and some trend involved. Same holds true for the industrial sector. 
 
@@ -215,7 +216,7 @@ ticker_data_df <- gather(ticker_data_df, key="Ticker", value="Value",
 head(ticker_data_df)
 ```
 
-```{r, echo=FALSE}
+```{r, fig.height=4, echo=FALSE}
 # Line Chart
 # New facet label names for ticker_data
 ticker.labs <- c("XLI: Industrial", "XLB: Materials")
@@ -228,7 +229,8 @@ ggplot(ticker_data_df, aes(Date, Value)) +
   ggtitle("Ticker Time Series") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        plot.title = element_text(hjust = 0.5))
+        plot.title = element_text(hjust = 0.5)) +
+  ylab('Adjusted Close')
 ```
 
 
@@ -237,7 +239,7 @@ ggplot(ticker_data_df, aes(Date, Value)) +
 sapply(ticker_data, adf.test)
 ```
 
-To further verify this assumption an Augmented Dickey-Fuller Test is conducted for both time series. For the materials sector the p-Value is `r round(adf.test(ticker_data$XLB.Adjusted)$p.value, 2)`, which means the time series is non-stationary. For the industrial sector the p-Value of `r round(adf.test(ticker_data$XLI.Adjusted)$p.value, 2)` is below 0.5 which means the time series is stationary. Because it is only slightly below 0.5 we differentiate it as well. Also both time series are logarithmised. Afterwards both time series have p-Values below 0.01 in the Augmented Dickey-Fuller Test and are therefor stationary. A visual inspection leads to the same conclusion (see Appendix).
+To further verify this assumption an "*Augmented Dickey-Fuller Test*" is conducted for both time series. For the materials sector the p-Value is `r round(adf.test(ticker_data$XLB.Adjusted)$p.value, 2)`, which means the time series is non-stationary. For the industrial sector the p-Value of `r round(adf.test(ticker_data$XLI.Adjusted)$p.value, 2)` is below 0.5 which means the time series is stationary. Because it is only slightly below 0.5 we differentiate it as well. This, since financial time series generally tend to consist of a drift component, which leads to non-stationary^[Source: https://elearning.hslu.ch/ilias/ilias.php?baseClass=ilrepositorygui&cmd=sendfile&ref_id=6072252]. Also both time series are logarithmised. Afterwards both time series have p-Values below 0.01 in the "*Augmented Dickey-Fuller Test*" and are therefore stationary. A visual inspection leads to the same conclusion (see Appendix).
 
 ```{r, include=FALSE}
 ticker_data_differenced <- NULL
@@ -262,9 +264,9 @@ ticker_data_differenced_df$date <- rownames(ticker_data_differenced_df)
 
 To import the Google Trends data the package `gtrendsR` is used. The package allows to query the data of the interest over time for a keyword. In the case of this study the keyword *war* in web searches was chosen, as it is considered to capture all conflicts alike. When it comes to the geographical origin of the searches the whole world was considered as the study aims to give a generalized and non location specific view of the crisis level regarding war. The returned data from Google Trends is normalized over the queried time frame and reflects the search volume for a keyword on a scale from 0-100, where 100 means very high interest and 0 no interest.^[Source: https://newsinitiative.withgoogle.com/en-gb/resources/trainings/fundamentals/google-trends-understanding-the-data]
 
-The data reveals three spikes: one can be attributed to the start of the russian invasion in the Ukraine, one to the attack of the Hamas in Israel and the third is a bit unclear. This also goes to show, that the data might not be stationary. The augmented Dicky Fuller test gives a p-Value of `r round(adf.test(gtrends_war_web$hits)$p.value,2)` which is slightly below 0.05. Because the p-value is only slightly below 0.05 the first difference is taken. Additionally the series is logarithmised. After this transformation the p-value of the augmented Dicky Fuller test is below 0.01. Also on visual inspection the data now looks stationary (see appendix).
+The data reveals three spikes: one can be attributed to the start of the Russian invasion in the Ukraine, one to the attack of the Hamas in Israel and the third is a bit unclear, but could be lead back to events in the Russian invasion of Ukraine^[Source: https://en.wikipedia.org/wiki/Timeline_of_the_Russian_invasion_of_Ukraine_(12_November_2022_%E2%80%93_7_June_2023)]. This also goes to show, that the data might not be stationary. The augmented Dicky Fuller test gives a p-Value of `r round(adf.test(gtrends_war_web$hits)$p.value,2)` which is slightly below 0.05. Because the p-value is only slightly below 0.05 the first difference is taken. Additionally the series is logarithmised. After this transformation the p-value of the "*Augmented Dicky Fuller Test*" is below 0.01. Also on visual inspection the data now looks stationary (see Appendix).
 
-```{r fig.align="center", fig.width=12, fig.height=4, echo=FALSE}
+```{r fig.align="center", fig.width=12, fig.height=5, echo=FALSE}
 ### Visualize Google Trends Data
 # Line chart
 
@@ -284,7 +286,9 @@ ggplot(gtrends_war_web, aes(date, hits)) +
   geom_vline(xintercept = as.POSIXct("2023-10-07"), linetype="dashed", 
                color = "black", size=0.5) +
   annotate('label', x=as.POSIXct("2023-10-07"), y=80, 
-             label="Start Israel-Hamas War", vjust=2, color="black")
+             label="Start Israel-Hamas War", vjust=2, color="black") +
+  ylab("Search Volume") +
+  xlab("Date")
 
 ```
 
@@ -321,11 +325,11 @@ max(gtrends_war_web_differenced$date)
 
 ### **Inflation Data**
 
-In order to handle potential confounding variables that could cause spurious correlations due to influence on the dependent and independent variable, it is important to also include a control variable that represents the general economic state. Therefore, the inflation rate is included as well, which was retrieved from the OECD.^[Source: https://data.oecd.org/price/inflation-cpi.htm] As the indices come from american companies, only the inflation rate from the USA was included.
+In order to handle potential confounding variables that could cause spurious correlations due to influence on the dependent and independent variable, it is important to also include a control variable that represents the general economic state. Therefore, the inflation rate is included as well, which was retrieved from the OECD.^[Source: https://data.oecd.org/price/inflation-cpi.htm] As the indices come from American companies, only the inflation rate from the USA was included.
 
-The inflation data shows a very clear trend. First it goes up until mid 2022 and then it constantly comes back down. So this time series is clearly not stationary. The augmented Dicky Fuller test has a p-Value of `r round(adf.test(inflation_df$AVG_INFLATION)$p.value, 2)`. To make the data stationary it had to be differenced twice and also logarithmised. A visualization of the stationary inflation data is in the appendix.
+The inflation data shows a very clear trend. First it goes up until mid 2022 and then it constantly comes back down. So this time series is clearly non-stationary. The "*Augmented Dicky Fuller Test*" has a p-Value of `r round(adf.test(inflation_df$AVG_INFLATION)$p.value, 2)`. To make the data stationary it had to be differenced twice and also logarithmised. A visualization of the stationary inflation data is in the appendix.
 
-```{r fig.align="center", fig.width=12, fig.height=4, echo=FALSE}
+```{r fig.align="center", fig.width=12, fig.height=5, echo=FALSE}
 ### Visualize Inflation Data
 # Line chart
 
@@ -333,7 +337,7 @@ ggplot(inflation_df, aes(TIME, AVG_INFLATION)) +
   geom_line(color='darkseagreen3', group = 1) +
   theme_minimal() +
   ggtitle("Inflation in the USA") +
-  ylab("Inflation") +
+  ylab("Inflation in %") +
   xlab("Date") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         plot.title = element_text(hjust = 0.5))
@@ -386,7 +390,7 @@ war_ticker_inflation_df <- na.omit(war_ticker_inflation_df)
 
 ## 4. Results and Discussion
 
-After the stationary data from the different time series is combined into one dataframe the vector autoregression can be conducted. One model is run for each of the two indices. As information criteria to chose the best lag the AIC (Akaike information criterion) is used. We are not only interested in short term effects of the crisis measure but in the effect on the whole time frame. Therefore, we chose the largest possible lag.max, which was 21. 
+After the stationary data from the different time series is combined into one dataframe the vector autoregression can be conducted. One model is run for each of the two indices. As information criteria to chose the best lag the AIC (Akaike information criterion) is used. We are not only interested in short term effects of the crisis measure but in the effect on the whole time frame. Therefore, we chose the largest possible lag.max, which was 21 and comes from the volume of the data. 
 
 ```{r, include=FALSE}
 # Create ticker list
@@ -437,25 +441,26 @@ for (Ticker in ticker_cols) {
 
 ```
 
-To determine if the crisis measure has an influence on the indices a Granger causality test was carried out. The test was also executed for the indices and the inflation as cause. In the output below the p-values from the Granger causality test are displayed for the different causes. For both sectors the influence of the Google Trends data for the search term *"war"* is higher than 0.05 and therefore not significant. In conclusion, the materials and industrial sectors do not profit from war.
+To determine if the crisis measure has an influence on the indices a "*Granger Causality Test*" was carried out. The test was also executed for the indices and the inflation as cause. In the output below the p-values from the "*Granger Causality Test*" are displayed for the different causes. For both sectors the influence of the Google Trends data for the search term *"war"* is higher than 0.05 and therefore not significant. In conclusion, the materials and industrial sectors do not profit from war.
 
 ```{r, echo=FALSE}
 # Print results of Granger Test
-var_ticker[order(var_ticker[,1], decreasing=FALSE),]
+knitr::kable(var_ticker[order(var_ticker[,1], decreasing=FALSE),])
 ```
 
 
 ## 5. Conclusion
 
-This paper was looking into the effect of war on the performance of two sector specific indices. Specifically, the hypotheses was, that the materials and industrial sector are profiteers of war. To verify this hypotheses a vector autoregression including inflation as control variable was performed. The Granger causality test didn't show a significant effect of war on the two sectors. Therefore the hypotheses couldn't be confirmed.
+This paper was looking into the effect of war on the performance of two sector specific indices. Specifically, the hypotheses was, that the materials and industrial sector are profiteers of war. To verify this hypotheses a vector autoregression including inflation as control variable was performed. The "*Granger Causality Test*" did not show a significant effect of war on the two sectors. Therefore, the hypotheses could not be confirmed.
 
 Future research could look into other measures for war, as the Google trends data might not capture this correctly. Also we think, that the results were influenced by the control variable (inflation). It might be interesting to look into other control variables that capture the general economic state. Also it could be interesting to look into the effect of war on other indices or maybe only single companies and not whole sectors. And lastly it could be interesting to repeat the analysis over a longer time period. 
 
+\newpage
 ## Appendix
 
 **Histogram of Financial Data**
 
-```{r, echo=FALSE, message=FALSE}
+```{r, fig.height=3, echo=FALSE, message=FALSE}
 # Histogram
 ggplot(ticker_data_df, aes(Value)) +
   geom_histogram(color='darkseagreen3', fill='darkseagreen3') +
@@ -469,15 +474,16 @@ ggplot(ticker_data_df, aes(Value)) +
 
 **Diff-Log-Transformed Financial Data**
 
-```{r, echo=FALSE}
+```{r, fig.height=3, echo=FALSE}
 par(mfrow = c(1, 2))
 plot(ts(ticker_data_differenced_df$XLB.Adjusted))
 plot(ts(ticker_data_differenced_df$XLI.Adjusted))
 ```
 
+\newpage
 **Histogram of Google Trends Data**
 
-```{r, echo=FALSE, message=FALSE}
+```{r, fig.height=3, echo=FALSE, message=FALSE}
 # Histogram
 ggplot(gtrends_war_web, aes(hits)) +
   geom_histogram(color='darkseagreen3', fill='darkseagreen3') +
@@ -489,14 +495,15 @@ ggplot(gtrends_war_web, aes(hits)) +
 
 **Diff-Log-Transformed Google Trends Data**
 
-```{r, echo=FALSE}
+```{r, fig.height=3, echo=FALSE}
 par(mfrow = c(1, 1))
 plot(ts(gtrends_war_web_differenced$hits))
 ```
 
+\newpage
 **Histogram Inflation**
 
-```{r, echo=FALSE, message=FALSE}
+```{r, fig.height=3, echo=FALSE, message=FALSE}
 # Histogram
 ggplot(inflation_df, aes(AVG_INFLATION)) +
   geom_histogram(color='darkseagreen3', fill='darkseagreen3') +
@@ -508,7 +515,7 @@ ggplot(inflation_df, aes(AVG_INFLATION)) +
 
 **Diff-Log-Transformed Inflation Data**
 
-```{r, echo=FALSE}
+```{r, fig.height=3, echo=FALSE}
 par(mfrow = c(1, 1))
 plot(ts(inflation_differenced$AVG_INFLATION))
 ```
