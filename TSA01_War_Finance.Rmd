@@ -11,10 +11,8 @@ header-includes:
   - \renewcommand{\bibsection}{}
 fontsize: 12pt
 bibliography: references.bib
-csl: apa.csl
 ---
 
-\DeclareFieldFormat{titlecase}{#1}
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
