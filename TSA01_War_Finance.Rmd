@@ -11,7 +11,10 @@ header-includes:
   - \renewcommand{\bibsection}{}
 fontsize: 12pt
 bibliography: references.bib
+csl: apa.csl
 ---
+
+\DeclareFieldFormat{titlecase}{#1}
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -70,13 +73,13 @@ With recent outbreaks of war (e.g., in Israel and Ukraine), the question arises 
 * **XLI**: Industrial Select Sector
 * **XLB**: Materials Select Sector
 
-Essentially, our research question is the following: *Who are the financial profiteers of war?*. To answer this question, the performance of the sector-specific indices should be compared to an overall crisis measure. As an overall crisis measure, the Google Trend data for the search word *"war"* is used. We postulate, that an increased search for this term points to a higher crisis. So in conclusion, we want to examine if there are positive correlations between our crisis measure and stock market profits in the different indices. 
+Essentially, our research question is the following: *Who are the financial profiteers of war?*. To answer this question, the performance of the sector-specific indices shall be compared to an overall crisis measure. As an overall crisis measure, the Google Trend data for the search word *"war"* is used. We postulate, that an increased search for this term points to a higher crisis. So in conclusion, we want to examine if there are positive correlations between our crisis measure and stock market profits in the different indices. 
 
 ## 2. Methods and Hypotheses
 
 The method we will use is vector autoregression (VAR). This allows us to measure the influence of our crisis measure on the performance of the different indices. For each index, we will calculate a separate model. Furthermore, to address potential spurious correlations, we include inflation as a control variable in our models. To test for a causal relationship between the crisis measure and the indices, a "*Granger Causality Test*" will be conducted for every index. 
 
-Before a VAR and causality test can be carried out, the different time series (indices, crisis measures, and inflation) have to be imported, cleaned and pre-processed. Specifically, potential seasonal effects and trends in each time series have to be identified and adjusted for to achieve stationarity. A stationary time series is characterized by a stabilized mean and variance over time, and will ultimately allow more reliable and accurate modeling [@AnkenbrandBieri]. To test the stationarity of a time series, the "*Augmented Dickey-Fuller Test*" will be carried out. Furthermore, the stationarity is checked by visualizing the time series. If a time series is non-stationary, lagged differences will be calculated. Lastly, to get continuous growth rates, the time series will first be logarithmized before applying the difference.
+Before a VAR and causality test can be carried out, the different time series (indices, crisis measures, and inflation) have to be imported, cleaned and pre-processed. Specifically, potential seasonal effects and trends in each time series have to be identified and adjusted for to achieve stationarity. A stationary time series is characterized by a stabilized mean and variance over time, and will ultimately allow more reliable and accurate modeling [@AnkenbrandBieri]. To test the stationarity of a time series, the "*Augmented Dickey-Fuller test*" will be carried out. Furthermore, the stationarity is checked by visualizing the time series. If a time series is non-stationary, lagged differences will be calculated. Lastly, to get continuous growth rates, the time series will first be logarithmized before applying the difference.
 
 The two chosen indices both encompass companies that could profit from war. The industrials select sector has, among others, defense companies and the materials select sector steel production companies in it. Our hypothesis, therefore, is that these two sectors are likely to profit from war and that our crisis measure will have a positive influence on these indices. In an analysis done on the performance of different sectors during World War II, these sectors were not among the best performing sectors. Instead, printing & publishing and beer & liquor performed best [@Whichsec96:online]. Nevertheless, we want to check if our assumption holds true in today's economy under the current crisis.
 
@@ -212,7 +215,7 @@ ggplot(ticker_data_df, aes(Date, Value)) +
 sapply(ticker_data, adf.test)
 ```
 
-To further verify this assumption, an "*Augmented Dickey-Fuller Test*" is conducted for both time series. For the materials sector, the p-Value is `r round(adf.test(ticker_data$XLB.Adjusted)$p.value, 2)`, which means the time series is non-stationary. For the industrial sector, the p-Value of `r round(adf.test(ticker_data$XLI.Adjusted)$p.value, 2)` is below 0.05, which means the time series is stationary. Because it is only slightly below 0.05, we differentiate it as well. This is since financial time series generally tend to consist of a drift component, which leads to non-stationarity [@AnkenbrandBieri]. Also, both time series are logarithmized. Afterwards both time series have p-Values below 0.01 in the "*Augmented Dickey-Fuller Test*" and are therefore stationary. A visual inspection leads to the same conclusion (see Appendix).
+To further verify this assumption, an "*Augmented Dickey-Fuller test*" is conducted for both time series. For the materials sector, the p-Value is `r round(adf.test(ticker_data$XLB.Adjusted)$p.value, 2)`, which means the time series is non-stationary. For the industrial sector, the p-Value of `r round(adf.test(ticker_data$XLI.Adjusted)$p.value, 2)` is below 0.05, which means the time series is stationary. Because it is only slightly below 0.05, we differentiate it as well. This is because financial time series generally tend to have of a drift component, which leads to non-stationarity [@AnkenbrandBieri]. Also, both time series are logarithmized. Afterwards both time series have p-Values below 0.01 in the "*Augmented Dickey-Fuller test*" and are therefore stationary. A visual inspection leads to the same conclusion (see Appendix).
 
 ```{r, include=FALSE}
 ticker_data_differenced <- NULL
@@ -237,7 +240,7 @@ ticker_data_differenced_df$date <- rownames(ticker_data_differenced_df)
 
 To import the Google Trends data, the package `gtrendsR` is used. The package allows querying the data of interest over time for a keyword. In the case of this study, the keyword *war* in web searches was chosen as it is considered to capture all conflicts alike. When it comes to the geographical origin of the searches, the whole world was considered, as the study aims to give a generalized and non-location-specific view of the crisis level regarding war. The returned data from Google Trends is normalized over the queried time frame and reflects the search volume for a keyword on a scale from 0-100, where 100 means very high interest and 0 means no interest [@GoogleTrend]. 
 
-The data reveals three spikes: one can be attributed to the start of the Russian invasion in Ukraine, one to the attack of Hamas in Israel, and the third is a bit unclear but could be traced back to events in the Russian invasion of Ukraine [@WEF]. This also goes to show that the data might not be stationary. The "*Augmented Dicky Fuller Test*" gives a p-Value of `r round(adf.test(gtrends_war_web$hits)$p.value,2)` which is slightly below 0.05. Because the p-value is only slightly below 0.05, the first difference is taken. Additionally, the series is logarithmized. After this transformation, the p-value of the "*Augmented Dicky Fuller Test*" is below 0.01. Also, on visual inspection, the data now looks stationary (see Appendix).
+The data reveals three spikes: one can be attributed to the start of the Russian invasion in the Ukraine, one to the attack of Hamas in Israel, and the third is a bit unclear but could be traced back to events in the Russian invasion of Ukraine [@WEF]. This also goes to show that the data might not be stationary. The "*Augmented Dickey-Fuller test*" gives a p-Value of `r round(adf.test(gtrends_war_web$hits)$p.value,2)` which is slightly below 0.05. Because the p-value is only slightly below 0.05, the first difference is taken. Additionally, the series is logarithmized. After this transformation, the p-value of the "*Augmented Dickey-Fuller test*" is below 0.01. Also, on visual inspection, the data now looks stationary (see Appendix).
 
 ```{r fig.align="center", fig.width=12, fig.height=5, echo=FALSE}
 ### Visualize Google Trends Data
@@ -266,7 +269,7 @@ ggplot(gtrends_war_web, aes(date, hits)) +
 ```
 
 ```{r, include=FALSE}
-#### Augmented Dicky Fuller Test on Google Trends Data
+#### Augmented Dicky Fuller test on Google Trends Data
 adf.test(gtrends_war_web$hits)
 ```
 
@@ -299,7 +302,7 @@ max(gtrends_war_web_differenced$date)
 
 In order to handle potential confounding variables that could cause spurious correlations due to their influence on the dependent and independent variables, it is important to also include a control variable that represents the general economic state. Therefore, the inflation rate is included as well, which was retrieved from the OECD [@oecd2023inflation]. As the indices come from American companies, only the inflation rate from the USA was included.
 
-The inflation data shows a very clear trend. First, it goes up until mid-2022, and then it constantly comes back down. So this time series is clearly non-stationary. The "*Augmented Dicky Fuller Test*" has a p-Value of `r round(adf.test(inflation_df$AVG_INFLATION)$p.value, 2)`. To make the data stationary, it had to be differenced twice and also logarithmized. A visualization of the stationary inflation data is in the appendix.
+The inflation data shows a very clear trend. First, it goes up until mid-2022, and then it constantly comes back down. So this time series is clearly non-stationary. The "*Augmented Dickey-Fuller test*" has a p-Value of `r round(adf.test(inflation_df$AVG_INFLATION)$p.value, 2)`. To make the data stationary, it had to be differenced twice and also logarithmized. A visualization of the stationary inflation data is in the appendix.
 
 ```{r fig.align="center", fig.width=12, fig.height=5, echo=FALSE}
 ### Visualize Inflation Data
@@ -444,9 +447,9 @@ Taking a closer look at the chosen lag of the VAR model for different informatio
 knitr::kable(lag_selected_matrix)
 ```
 
-This can result as AIC aims to balance model complexity against goodness of fit. However, for rather small data sets, such as the data set used in this paper, the AIC can have the tendency to favor more complex models [@aicbic], especially when there is a high change in the data for later time points, as in the inflation data (see inflation plot). Therefore, more complex models could be seen as more suitable for the AIC in such cases, as they capture the mentioned changes  more accurately. Taking a closer look at the "*Impulse Response Charts*" (see Appendix) shows that a shock at lag 0 still leads to an increase at a much later lags, whereas for XLB the highest increase even comes at the end of the plot, which supports this assumption as later changes are significant and should be captured in the model. Therefore, it could be that the control variable, inflation, influences the model too much. 
+The AIC aims to balance model complexity against goodness of fit. However, for rather small data sets, such as the data set used in this paper, the AIC can have the tendency to favor more complex models [@aicbic], especially when there is a high change in the data for later time points, as in the inflation data (see inflation plot in chapter 3). Therefore, more complex models could be seen as more suitable for the AIC in these cases, as they capture the mentioned changes  more accurately. Taking a closer look at the "*Impulse Response Charts*" (see Appendix) shows that a shock at lag 0 still leads to an increase at much later lags. For XLB the highest increase even comes at the end of the plot. This supports the assumption that the AIC tries to capture these later changes in the model. Therefore, it could be that the control variable, inflation, influences the model too much. 
 
-Running the VAR model again, without including inflation as a control variable (see Appendix) shows that we still do not end up with significant causality. However, inspecting the selected lags for the different information criteria and the "*Impulse Response Charts*", shows that the simplest model was chosen for all criteria and that there is no more a high influence on later lags by shocking at lag 0. This lets us prove that the inflation data has had a big influence on the model.
+When running the VAR model again, without including inflation as a control variable (see Appendix) there are still no significant result in the Granger Causality Test. However, inspecting the selected lags for the different information criteria and the "*Impulse Response Charts*", shows that the simplest model was chosen for all criteria and that there is no longer a high influence on later lags by introducing a shock at lag 0. This lends further evidence to our assumption that the inflation data has a big influence on the initial models.
 
 
 ```{r, include=FALSE}
@@ -510,7 +513,7 @@ for (Ticker in ticker_cols) {
 
 ## 5. Conclusion
 
-This paper looked into the effect of war on the performance of two sector-specific indices. Specifically, the hypothesis was that the materials and industrial sectors are profiteers of war. To verify this hypothesis a VAR including inflation as a control variable was performed. The "*Granger Causality Test*" did not show a significant effect of war on the two sectors for a VAR including inflation as a control variable or without. Therefore, the hypotheses could not be confirmed. Additionally, it was observed that inflation had a notable influence on the model selection, leading to selected models with higher lags.
+This paper looked into the effect of war on the performance of two sector-specific indices. Specifically, the hypothesis was that the materials and industrial sectors are profiteers of war. To verify this hypothesis a VAR including inflation as a control variable was performed. The "*Granger Causality Test*" did not show a significant effect of war on the two sectors, both for a VAR including inflation as a control variable and one without. Therefore, the hypotheses could not be confirmed. Additionally, it was observed that inflation had a notable influence on the model selection, leading to selected models with higher lags.
 
 Future research could look into other measures for war, as the Google Trends data might not capture this correctly. Also, the results were influenced by the control variable (inflation) due to higher changes at later time points. Therefore, it might be interesting to look into other control variables that capture the general economic state. Also, it could be interesting to look into the effect of war on other indices, or maybe only single companies and not whole sectors. And lastly, it could be interesting to repeat the analysis over a longer time period. 
 
@@ -602,7 +605,6 @@ knitr::kable(lag_selected_matrix_without_inflation)
 
 \newpage
 **Impulse Response Function for VAR of Ticker and War Interest without Inflation**
-**Impulse Response Function for VAR of Ticker, War Interest and Inflation**
 ```{r, fig.height=4, echo=FALSE}
 irf_plots_list_without_inflation$XLB.Adjusted
 irf_plots_list_without_inflation$XLI.Adjusted
